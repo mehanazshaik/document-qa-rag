@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+from google.genai import errors
 from dotenv import load_dotenv
 from google import genai
 
@@ -15,7 +15,10 @@ API_KEY = os.getenv("GEMINI_API_KEY")
 if not API_KEY:
     raise ValueError("GEMINI_API_KEY not found in .env file")
 
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(
+    api_key=API_KEY,
+    http_options={"timeout": 60000}
+)
 
 MODEL_NAME = "gemini-3.5-flash-lite"
 
@@ -62,13 +65,17 @@ Instructions:
 3. Do not invent information.
 4. Include source citations using the document filename and page number.
 """
+    try:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt
+        )
 
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt
-    )
+        return response.text
 
-    return response.text
+    except errors.ServerError:
+        return "The language model is temporarily unavailable. Please try the question again."
+    
 
 
 if __name__ == "__main__":
